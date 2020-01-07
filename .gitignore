@@ -1,0 +1,6 @@
+#ignore the executable
+build/*
+!build/.gitkeep
+
+#ignore all the files created
+output/
