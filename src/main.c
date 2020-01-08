@@ -5,7 +5,7 @@
 
 int main(int argc, char const *argv[]) {
   /* Check for correct use of program */
-  if (argc < 4 || argc > 5) {
+  if (argc < 4 || argc > 6) {
     printf("Wrong arguments. Use as: [repl. algorithm n_frames set_length max_refs window_size]\n");
     exit(EXIT_FAILURE);
   }

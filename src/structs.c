@@ -44,7 +44,7 @@ main_memory_entry* create_main_memory(int size) {
 
   for (size_t i = 0; i < size; ++i) {
     new[i].curr_offset = EMPTY;
-    new[i].has_writen = False;
+    new[i].modified = False;
     new[i].time_signature = EMPTY;
   }
 
@@ -93,4 +93,85 @@ int find_space_ipt(ipt_entry* ipt, int size, int pid, int p_hash, int* pos) {
     }
 
     return to_return;
+}
+
+Queue* initialize_queue(int size) {
+    Queue* Q = malloc(sizeof(Queue));
+    Q->Front = NULL;
+    Q->Rear = NULL;
+    Q->curr_size = 0;
+    Q->max_size = size;
+    return Q;
+}
+
+void insert(Queue* Q, int X) {
+  if (Q->curr_size == Q->max_size) {
+    Remove(Q);
+  }
+
+   QueueNode *Temp;
+
+   Temp = malloc(sizeof(QueueNode));
+
+   if (Temp==NULL) {
+      printf("System storage is exhausted");
+      exit(EXIT_FAILURE);
+   } else {
+     Q->curr_size++;
+      Temp->Item = X;
+      Temp->Link = NULL;
+      if (Q->Rear == NULL) {
+         Q->Front = Temp;
+         Q->Rear = Temp;
+      } else {
+         Q->Rear->Link = Temp;
+         Q->Rear = Temp;
+      }
+   }
+}
+
+void Remove(Queue *Q) {
+   QueueNode* Temp;
+
+   if (Q->Front == NULL) {
+      printf("Attempt to remove item from an empty queue");
+      exit(EXIT_FAILURE);
+   } else {
+      Temp = Q->Front;
+      Q->Front = Temp->Link;
+      free(Temp);
+      if (Q->Front == NULL)
+        Q->Rear = NULL;
+   }
+   Q->curr_size--;
+}
+
+int* initialize_set(int size) {
+  int* new =  malloc(size * sizeof(int));
+  for (size_t i = 0; i < size; ++i) {
+    new[i] = EMPTY;
+  }
+  return new;
+}
+
+int in_set(int* ws, int x, int size) {
+  for (size_t i = 0; i < size; ++i) {
+    if (x == ws[i])
+    return 1;
+  }
+  return 0;
+}
+
+int* fill_working_set(int* ws, Queue* queue, int size) {
+  int i = 0;
+  QueueNode* Temp;
+  Temp = queue->Front;
+  while (Temp != NULL) {
+    if(in_set(ws, Temp->Item, size) == 0) {
+      ws[i] = Temp->Item;
+      i++;
+    }
+      Temp = Temp->Link;
+  }
+  return ws;
 }

@@ -1,7 +1,6 @@
-TARGET_EXEC ?= readers_writers
+TARGET_EXEC ?= memory_simulator
 
 CC = gcc
-FLAGS = -pthread -lm
 
 BUILD_DIR ?= ./build
 SRC_DIRS ?= ./src
@@ -14,7 +13,7 @@ INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	$(CC) $(OBJS) -o $@ $(FLAGS)
+	$(CC) $(OBJS) -o $@ 
 
 # c source
 $(BUILD_DIR)/%.c.o: %.c

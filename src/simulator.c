@@ -21,6 +21,9 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
   int pid;
   set_entry* temp_set = create_temp_set(set_length);
   main_memory_entry* main_memory = create_main_memory(n_frames);
+  /* Initialize 2 queues that will store the time frame needed for the WS algo */
+  Queue* active_pr1 = initialize_queue(window_size);
+  Queue* active_pr2 = initialize_queue(window_size);
 
   for (size_t i = 0; i < 2 * loops; ++i) {
 
@@ -37,7 +40,7 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
     /* Traverse the set of logical adresses and try to insert them in the ipt */
     for (size_t j = 0; j < set_length; ++j) {
       logical_adress* log_adress = create_logical_adress(temp_set[j].address);
-      int result; int pos = -1;
+      int result; int pos = EMPTY;
       /* Traverse the ipt to find empty space, or even better, the page itself */
       result = find_space_ipt(ipt, n_frames, pid, log_adress->p_hash , &pos);
       /* If we find the page, then just adhust the entry in the main memory */
@@ -57,12 +60,22 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
         fault, and we must decide which page to sacrifice, by running the algorithm
         given as an argument to the simulator */
       else if (result == FAILURE) {
-        pos = find_page_to_sacrifise(alg, main_memory, n_frames);
+        if (pid == 0) {
+          pos = find_page_to_sacrifise(alg, ipt, main_memory, n_frames, pid, active_pr1, window_size);
+        }
+        else {
+          pos = find_page_to_sacrifise(alg, ipt, main_memory, n_frames, pid, active_pr2, window_size);
+        }
         page_faults++;
-        // pos = find_page_to_sacrifise();
         ipt[pos].pid = pid;
         ipt[pos].p_hash = log_adress->p_hash;
-        //TODO change stuff in main memory
+      }
+      /* If we are running WS, we want the new page in to the correct time frame */
+      if (pid == 0 && alg == WS) {
+        insert(active_pr1, pos);
+      }
+      else if (pid == 1 && alg == WS) {
+        insert(active_pr2, pos);
       }
       /* Change the page info in the main memory, by accessing the correct
       position found(or created) in the ipt */
@@ -71,7 +84,7 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
       /* If we want to write, store that info in order to set the page dirty
         later. Also, update the corrensponting counter */
       if (temp_set[j].operation == 'W') {
-        main_memory[pos].has_writen = True;
+        main_memory[pos].modified = True;
         writes++;
       }
       else {
@@ -79,7 +92,6 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
       }
       /* Increase the virtual time by 1 in each loop*/
       time++;
-
       free(log_adress);
     }
   }
@@ -103,11 +115,11 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
     ipt_pic = fopen("output/IPT", "w+");
     mem_pic = fopen("output/MEM", "w+");
     fprintf(ipt_pic, "Final picture of the IPT.\n\np_id | p#\n\n");
-    fprintf(mem_pic, "Final picture of the main memory.\n\noffset | W | time_signature\n\n");
+    fprintf(mem_pic, "Final picture of the main memory.\n\noffset | M | time_signature\n\n");
 
     for (size_t i = 0; i < n_frames; ++i) {
-      fprintf(ipt_pic, "%d     %X\n",ipt[i].pid, ipt[i].p_hash);
-      fprintf(mem_pic, "%3X      %d   %d\n", main_memory[i].curr_offset, main_memory[i].has_writen, main_memory[i].time_signature);
+      fprintf(ipt_pic, "%2d     %X\n",ipt[i].pid, ipt[i].p_hash);
+      fprintf(mem_pic, "%3X      %2d   %d\n", main_memory[i].curr_offset, main_memory[i].modified, main_memory[i].time_signature);
     }
 
     if (fclose(ipt_pic) == EOF || fclose(mem_pic) == EOF) {

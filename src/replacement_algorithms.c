@@ -6,11 +6,11 @@
 
 /* Function that returns the position of the main memory that needs to be
    sacrifised, given an alforithm and the main memory */
-int find_page_to_sacrifise(int algorithm, main_memory_entry* main_memory, int size) {
+int find_page_to_sacrifise(int algorithm, ipt_entry* ipt, main_memory_entry* main_memory, int size, int pid, Queue* active, int window_size) {
     if (algorithm == LRU)
       return lru(main_memory, size);
-    // else if (algorithm == WS)
-    //   return ws(main_memory, size);
+    else if (algorithm == WS)
+      return ws(ipt, main_memory, size, pid, active, window_size);
 }
 
 /* Implementation of the LRU algorithm. We sacrifice the least recently used
@@ -27,13 +27,58 @@ int lru(main_memory_entry* main_memory, int size) {
   }
   /* Simulation of "writing to the disk", by setting the soon to be removed page
     as dirty */
-  if (main_memory[pos].has_writen == True) {
+  if (main_memory[pos].modified == True) {
     dirty_pages++;
   }
-  
-  if (pos == -1) {
+  /* If we end up here, without sacrifising a page, something is definatelly
+    wrond */
+  if (pos == EMPTY) {
     printf("Something unexpected happened during page replacement. Exiting...\n");
     exit(EXIT_FAILURE);
   }
+  /* Return the position of the page that was chosen to be sacrificed */
+  return pos;
+}
+
+/* Implementation of the WS algorithm. We keep a time frame of all the references,
+  and then when a sacrifice is neccessary, we construct the set of this frame,
+  and remove all of the pages that are not in that set.*/
+int ws(ipt_entry* ipt, main_memory_entry* main_memory, int size, int pid, Queue* active, int window_size) {
+  /* Create a set to store the containers of the time frame */
+  int* working_set = initialize_set(window_size);
+  /* Fill it */
+  fill_working_set(working_set, active, window_size);
+  int pos = EMPTY;
+  /* Scan the page table to find the tuples (pid, p#) that are not in the set */
+  for (size_t i = 0; i < size; ++i) {
+    if (ipt[i].pid == pid && in_set(working_set, i, window_size) == False) {
+      /* "Remove" the page from the ipt and the main memory */
+      ipt[i].pid = EMPTY;
+      ipt[i].p_hash = EMPTY;
+      /* Simulation of "writing to the disk", by setting the soon to be removed page
+        as dirty */
+      if (main_memory[i].modified == True) {
+        dirty_pages++;
+      }
+      main_memory[i].curr_offset = EMPTY;
+      main_memory[i].modified = 0;
+      main_memory[i].time_signature = EMPTY;
+      /* If it is the first time that we delete, we want the new page to be
+        stored there */
+      if (pos == EMPTY) {
+        pos = i;
+      }
+    }
+  }
+  /* If we end up here, without sacrifising a page, something is definatelly
+    wrond */
+  if (pos == EMPTY) {
+    printf("Something unexpected happened during page replacement. Exiting...\n");
+    exit(EXIT_FAILURE);
+  }
+  /* Free the set */
+  free(working_set);
+  
+  /* Return the position of the page that was chosen to be sacrificed */
   return pos;
 }
