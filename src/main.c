@@ -28,11 +28,7 @@ int main(int argc, char const *argv[]) {
     window_size = atoi(argv[5]);
   }
 
-  if (2 * window_size > n_frames) {
-    printf("The working set can not be bigger than the total memory. Aborting\n");
-    exit(EXIT_FAILURE);
-  }
-  /* Run the simulator */
+/* Run the simulator */
   simulator(algorithm, n_frames, set_length, max_references, window_size);
 
   exit(EXIT_SUCCESS);

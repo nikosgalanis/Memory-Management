@@ -66,4 +66,4 @@ void insert(Queue* Q, int x);
 void Remove(Queue* Q);
 int* initialize_set(int size);
 int in_set(int* ws, int x, int size);
-int* fill_working_set(int* ws, Queue* queue, int size);
+int* fill_working_set(int* ws, Queue* queue, int size, int* total_items);

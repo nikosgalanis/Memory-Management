@@ -162,14 +162,14 @@ int in_set(int* ws, int x, int size) {
   return 0;
 }
 
-int* fill_working_set(int* ws, Queue* queue, int size) {
+int* fill_working_set(int* ws, Queue* queue, int size, int* total_items) {
   int i = 0;
   QueueNode* Temp;
   Temp = queue->Front;
   while (Temp != NULL) {
     if(in_set(ws, Temp->Item, size) == 0) {
       ws[i] = Temp->Item;
-      i++;
+      (*total_items)++;
     }
       Temp = Temp->Link;
   }

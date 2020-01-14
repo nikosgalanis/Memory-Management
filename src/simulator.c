@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "../headers/structs.h"
 #include "../headers/simulator.h"
 #include "../headers/replacement_algorithms.h"
 
@@ -22,8 +21,8 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
   set_entry* temp_set = create_temp_set(set_length);
   main_memory_entry* main_memory = create_main_memory(n_frames);
   /* Initialize 2 queues that will store the time frame needed for the WS algo */
-  Queue* active_pr1 = initialize_queue(window_size);
-  Queue* active_pr2 = initialize_queue(window_size);
+  active_pr1 = initialize_queue(window_size);
+  active_pr2 = initialize_queue(window_size);
 
   for (size_t i = 0; i < 2 * loops; ++i) {
 
@@ -60,30 +59,30 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
         fault, and we must decide which page to sacrifice, by running the algorithm
         given as an argument to the simulator */
       else if (result == FAILURE) {
-        if (pid == 0) {
-          pos = find_page_to_sacrifise(alg, ipt, main_memory, n_frames, pid, active_pr1, window_size);
+        pos = find_page_to_sacrifise(alg, ipt, main_memory, n_frames, pid, window_size);
+
+        if (pos != EMPTY) {
+          page_faults++;
+          ipt[pos].pid = pid;
+          ipt[pos].p_hash = log_adress->p_hash;
         }
-        else {
-          pos = find_page_to_sacrifise(alg, ipt, main_memory, n_frames, pid, active_pr2, window_size);
-        }
-        page_faults++;
-        ipt[pos].pid = pid;
-        ipt[pos].p_hash = log_adress->p_hash;
       }
       /* If we are running WS, we want the new page in to the correct time frame */
-      if (pid == 0 && alg == WS) {
+      if (pid == 0 && alg == WS && pos != EMPTY) {
         insert(active_pr1, pos);
       }
-      else if (pid == 1 && alg == WS) {
+      else if (pid == 1 && alg == WS && pos != EMPTY) {
         insert(active_pr2, pos);
       }
-      /* Change the page info in the main memory, by accessing the correct
-      position found(or created) in the ipt */
-      main_memory[pos].curr_offset = log_adress->offset;
-      main_memory[pos].time_signature = time;
+      if (pos != EMPTY) {
+        /* Change the page info in the main memory, by accessing the correct
+        position found(or created) in the ipt */
+        main_memory[pos].curr_offset = log_adress->offset;
+        main_memory[pos].time_signature = time;
+      }
       /* If we want to write, store that info in order to set the page dirty
         later. Also, update the corrensponting counter */
-      if (temp_set[j].operation == 'W') {
+      if (temp_set[j].operation == 'W' && pos != EMPTY) {
         main_memory[pos].modified = True;
         writes++;
       }
@@ -105,6 +104,9 @@ void simulator(int alg, int n_frames, int set_length, int max, int window_size) 
   printf("Page Fault Rate (PFR): %f\n", (float)page_faults / time);
   printf("Reads %d, Writes %d\n",reads, writes);
   printf("We've set %d pages as dirty\n",dirty_pages);
+  if (alg == WS) {
+    printf("A total of %d pages were not inserted, because of the violation of the WS size rule.\n", ws_failures);
+  }
 
   char answer;
   printf("Do you want to create log files containing the final picture of the IPT and the main memory? (Y/N)\n");
